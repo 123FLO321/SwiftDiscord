@@ -19,18 +19,14 @@
 
 import PackageDescription
 
-var deps: [Package.Dependency] = [
-    .package(url: "https://github.com/daltoniam/Starscream", .upToNextMinor(from: "3.0.0"))
-]
-
-var targetDeps: [Target.Dependency] = ["WebSockets"]
-
 let package = Package(
     name: "SwiftDiscord",
     products: [
         .library(name: "SwiftDiscord", targets: ["SwiftDiscord"])
     ],
-    dependencies: deps,
+    dependencies: [
+        .package(url: "https://github.com/daltoniam/Starscream", .upToNextMinor(from: "3.0.0"))
+    ],
     targets: [
         .target(name: "SwiftDiscord", dependencies: ["Starscream"]),
         .testTarget(name: "SwiftDiscordTests", dependencies: ["SwiftDiscord"]),
