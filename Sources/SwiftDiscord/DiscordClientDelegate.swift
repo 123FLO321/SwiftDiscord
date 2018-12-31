@@ -170,46 +170,6 @@ public protocol DiscordClientDelegate : class {
     func client(_ client: DiscordClient, didReceiveReady readyData: [String: Any])
 
     ///
-    /// Called when the client receives a voice state update.
-    ///
-    /// - parameter client: The client that is calling.
-    /// - parameter didReceiveVoiceStateUpdate: The voice state that was received.
-    ///
-    func client(_ client: DiscordClient, didReceiveVoiceStateUpdate voiceState: DiscordVoiceState)
-
-    ///
-    /// Called when the client is ready to start sending voice data.
-    ///
-    /// - parameter client: The client that is calling.
-    /// - parameter isReadyToSendVoiceWithEngine: The encoder that will be used.
-    ///
-    func client(_ client: DiscordClient, isReadyToSendVoiceWithEngine engine: DiscordVoiceEngine)
-
-    ///
-    /// Called when the client receives opus voice data.
-    ///
-    /// **Note** This is called from a queue that is dedicated to voice data, not the `handleQueue`.
-    ///
-    /// - parameter client: The client that is calling.
-    /// - parameter didReceiveOpusVoiceData: The voice data that was received.
-    /// - parameter fromEngine: The voice engine that received the data.
-    ///
-    func client(_ client: DiscordClient, didReceiveOpusVoiceData voiceData: DiscordOpusVoiceData,
-                fromEngine engine: DiscordVoiceEngine)
-
-    ///
-    /// Called when the client receives raw voice data.
-    ///
-    /// **Note** This is called from a queue that is dedicated to voice data, not the `handleQueue`.
-    ///
-    /// - parameter client: The client that is calling.
-    /// - parameter didReceiveRawVoiceData: The voice data that was received.
-    /// - parameter fromEngine: The voice engine that received the data.
-    ///
-    func client(_ client: DiscordClient, didReceiveRawVoiceData voiceData: DiscordRawVoiceData,
-                fromEngine engine: DiscordVoiceEngine)
-
-    ///
     /// Called when the client handles a guild member chunk.
     ///
     /// - parameter client: The client that is calling.
@@ -239,20 +199,6 @@ public protocol DiscordClientDelegate : class {
     func client(_ client: DiscordClient, didUpdateEmojis emojis: [EmojiID: DiscordEmoji],
                 onGuild guild: DiscordGuild)
 
-    ///
-    /// Called when a voice engine is requesting a new data source, can be used to override the default encoder with
-    /// different bitrate/sample rate/etc.
-    ///
-    /// This should return the data source to use.
-    ///
-    /// **Note**: This method is not called on the main queue.
-    /// **Note**: This method must be implemented on iOS; there is no FFmpeg middleware on iOS.
-    ///
-    /// - parameter client: The client that is calling.
-    /// - parameter needsDataSourceForEngine: The engine that needs an encoder.
-    /// - returns: A DiscordVoiceEncoder to use to encode with.
-    ///
-    func client(_ client: DiscordClient, needsDataSourceForEngine engine: DiscordVoiceEngine) throws -> DiscordVoiceDataSource
 }
 
 public extension DiscordClientDelegate {
@@ -311,12 +257,6 @@ public extension DiscordClientDelegate {
     func client(_ client: DiscordClient, didReceiveReady readyData: [String: Any]) { }
 
     /// Default.
-    func client(_ client: DiscordClient, didReceiveVoiceStateUpdate voiceState: DiscordVoiceState) { }
-
-    /// Default.
-    func client(_ client: DiscordClient, isReadyToSendVoiceWithEngine engine: DiscordVoiceEngine) { }
-
-    /// Default.
     func client(_ client: DiscordClient, didHandleGuildMemberChunk chunk: DiscordLazyDictionary<UserID, DiscordGuildMember>,
                 forGuild guild: DiscordGuild) { }
 
@@ -327,14 +267,6 @@ public extension DiscordClientDelegate {
     /// Default.
     func client(_ client: DiscordClient, didUpdateEmojis emojis: [EmojiID: DiscordEmoji],
                 onGuild guild: DiscordGuild) { }
-
-    /// Default.
-    func client(_ client: DiscordClient, didReceiveOpusVoiceData voiceData: DiscordOpusVoiceData,
-                fromEngine engine: DiscordVoiceEngine) { }
-
-    /// Default.
-    func client(_ client: DiscordClient, didReceiveRawVoiceData voiceData: DiscordRawVoiceData,
-                fromEngine engine: DiscordVoiceEngine) { }
 
     #if !os(iOS)
     /// Default

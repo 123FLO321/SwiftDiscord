@@ -17,13 +17,7 @@
 
 import Dispatch
 import Foundation
-#if !os(Linux)
 import Starscream
-#else
-import WebSockets
-import Sockets
-import TLS
-#endif
 
 /// Declares that a type will be an Engine for the Discord Gateway.
 public protocol DiscordEngineSpec : DiscordShard {

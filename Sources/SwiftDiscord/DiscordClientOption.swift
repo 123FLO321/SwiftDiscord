@@ -50,8 +50,6 @@ public enum DiscordClientOption : CustomStringConvertible, Equatable {
     /// Tells the client the number of shards to create. If not provided, one shard will be created.
     case shardingInfo(DiscordShardInformation)
 
-    /// The settings for voice engines. See `DiscordVoiceEngineConfiguration` for defaults.
-    case voiceConfiguration(DiscordVoiceEngineConfiguration)
 
     // MARK: Properties
 
@@ -67,7 +65,6 @@ public enum DiscordClientOption : CustomStringConvertible, Equatable {
         case .rateLimiter:          return "rateLimiter"
         case .shardingInfo:         return "shardingInfo"
         case .pruneUsers:           return "pruneUsers"
-        case .voiceConfiguration:   return "voiceConfiguration"
         }
     }
 

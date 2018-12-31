@@ -153,17 +153,4 @@ public protocol DiscordDispatchEventHandler {
 	///
 	func handleReady(with data: [String: Any])
 
-	///
-	/// Handles voice server updates from Discord.
-	///
-	/// - parameter with: The data from the event
-	///
-	func handleVoiceServerUpdate(with data: [String: Any])
-
-	///
-	/// Handles voice state updates from Discord.
-	///
-	/// - parameter with: The data from the event
-	///
-	func handleVoiceStateUpdate(with data: [String: Any])
 }

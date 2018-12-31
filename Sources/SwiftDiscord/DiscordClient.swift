@@ -85,14 +85,10 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
 
     /// The DiscordUser this client is connected to.
     public private(set) var user: DiscordUser?
-
-    /// A manager for the voice engines.
-    public private(set) var voiceManager: DiscordVoiceManager!
-
+    
     var channelCache = [ChannelID: DiscordChannel]()
 
     private var logType: String { return "DiscordClient" }
-    private let voiceQueue = DispatchQueue(label: "voiceQueue")
 
     // MARK: Initializers
 
@@ -105,7 +101,6 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
                          configuration: [DiscordClientOption] = []) {
         self.token = token
         self.shardManager = DiscordShardManager(delegate: self)
-        self.voiceManager = DiscordVoiceManager(delegate: self)
         self.delegate = delegate
 
         for config in configuration {
@@ -120,8 +115,6 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
                 self.rateLimiter = limiter
             case let .shardingInfo(shardingInfo):
                 self.shardingInfo = shardingInfo
-            case let .voiceConfiguration(config):
-                self.voiceManager.engineConfiguration = config
             case .discardPresences:
                 discardPresences = true
             case .fillLargeGuilds:
@@ -162,9 +155,6 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
 
         shardManager.disconnect()
 
-        for (_, engine) in voiceManager.get(voiceManager.voiceEngines) {
-            engine.disconnect()
-        }
     }
 
     ///
@@ -232,8 +222,6 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
         case .channelUpdate:         handleChannelUpdate(with: eventData)
         case .channelCreate:         handleChannelCreate(with: eventData)
         case .channelDelete:         handleChannelDelete(with: eventData)
-        case .voiceServerUpdate:     handleVoiceServerUpdate(with: eventData)
-        case .voiceStateUpdate:      handleVoiceStateUpdate(with: eventData)
         case .ready:                 handleReady(with: eventData)
         default:                     delegate?.client(self, didNotHandleDispatchEvent: event, withData: eventData)
         }
@@ -271,17 +259,7 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
         ), onShard: guild.shardNumber(assuming: shardingInfo.totalShards))
     }
 
-    ///
-    /// Leaves the voice channel that is associated with the guild specified.
-    ///
-    /// - parameter onGuild: The snowflake of the guild that you want to leave.
-    ///
-    open func leaveVoiceChannel(onGuild guildId: GuildID) {
-        DefaultDiscordLogger.Logger.log("Leaving voice channel on guild: \(guildId)", type: logType)
-
-        voiceManager.leaveVoiceChannel(onGuild: guildId)
-    }
-
+    
     ///
     /// Requests all users from Discord for the guild specified. Use this when you need to get all users on a large
     /// guild. Multiple `guildMembersChunk` will be fired.
@@ -311,10 +289,6 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
         shardManager.sendPayload(DiscordGatewayPayload(code: .gateway(.statusUpdate),
                                                        payload: .customEncodable(presence)),
                                  onShard: 0)
-    }
-
-    private func startVoiceConnection(_ guildId: GuildID) {
-        voiceManager.startVoiceConnection(guildId)
     }
 
     // MARK: DiscordShardManagerDelegate conformance.
@@ -358,80 +332,6 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
                            withPayload payload: DiscordGatewayPayload) {
         handleQueue.async {
             self.handleDispatch(event: event, data: payload.payload)
-        }
-    }
-
-    ///
-    /// Called when an engine disconnects.
-    ///
-    /// - parameter manager: The manager.
-    /// - parameter engine: The engine that disconnected.
-    ///
-    open func voiceManager(_ manager: DiscordVoiceManager, didDisconnectEngine engine: DiscordVoiceEngine) {
-        handleQueue.async {
-            guard let shardNum = self.guilds[engine.guildId]?.shardNumber(assuming: self.shardingInfo.totalShards) else { return }
-
-            let payload = DiscordGatewayPayloadData.object(["guild_id": String(describing: engine.guildId),
-                                                            "channel_id": EncodableNull(),
-                                                            "self_mute": false,
-                                                            "self_deaf": false])
-
-            self.shardManager.sendPayload(DiscordGatewayPayload(code: .gateway(.voiceStatusUpdate), payload: payload),
-                                          onShard: shardNum)
-        }
-    }
-
-    ///
-    /// Called when a voice engine receives opus voice data.
-    ///
-    /// - parameter manager: The manager.
-    /// - parameter didReceiveVoiceData: The data received.
-    /// - parameter fromEngine: The engine that received the data.
-    ///
-    open func voiceManager(_ manager: DiscordVoiceManager, didReceiveOpusVoiceData data: DiscordOpusVoiceData,
-                           fromEngine engine: DiscordVoiceEngine) {
-        voiceQueue.async {
-            self.delegate?.client(self, didReceiveOpusVoiceData: data, fromEngine: engine)
-        }
-    }
-
-    ///
-    /// Called when a voice engine receives raw voice data.
-    ///
-    /// - parameter manager: The manager.
-    /// - parameter didReceiveVoiceData: The data received.
-    /// - parameter fromEngine: The engine that received the data.
-    ///
-    open func voiceManager(_ manager: DiscordVoiceManager, didReceiveRawVoiceData data: DiscordRawVoiceData,
-                           fromEngine engine: DiscordVoiceEngine) {
-        voiceQueue.async {
-            self.delegate?.client(self, didReceiveRawVoiceData: data, fromEngine: engine)
-        }
-    }
-
-    ///
-    /// Called when a voice engine needs a data source.
-    ///
-    /// **Not called on the handleQueue**
-    ///
-    /// - parameter manager: The manager that is requesting an encoder.
-    /// - parameter needsDataSourceForEngine: The engine that needs an encoder
-    /// - returns: An encoder.
-    ///
-    open func voiceManager(_ manager: DiscordVoiceManager,
-                           needsDataSourceForEngine engine: DiscordVoiceEngine) throws -> DiscordVoiceDataSource? {
-        return try delegate?.client(self, needsDataSourceForEngine: engine)
-    }
-
-    ///
-    /// Called when a voice engine is ready.
-    ///
-    /// - parameter manager: The manager.
-    /// - parameter engine: The engine that's ready.
-    ///
-    open func voiceManager(_ manager: DiscordVoiceManager, engineIsReady engine: DiscordVoiceEngine) {
-        handleQueue.async {
-            self.delegate?.client(self, isReadyToSendVoiceWithEngine: engine)
         }
     }
 
@@ -884,60 +784,5 @@ open class DiscordClient : DiscordClientSpec, DiscordDispatchEventHandler, Disco
         }
 
         delegate?.client(self, didReceiveReady: data)
-    }
-
-    ///
-    /// Handles voice server updates from Discord. You shouldn't need to call this method directly.
-    ///
-    /// Override to provide additional customization around this event.
-    ///
-    /// - parameter with: The data from the event
-    ///
-    open func handleVoiceServerUpdate(with data: [String: Any]) {
-        DefaultDiscordLogger.Logger.log("Handling voice server update", type: logType)
-        DefaultDiscordLogger.Logger.verbose("Voice server update: \(data)", type: logType)
-
-        let info = DiscordVoiceServerInformation(voiceServerInformationObject: data)
-
-        voiceManager.voiceServerInformations[info.guildId] = info
-
-        self.startVoiceConnection(info.guildId)
-    }
-
-    ///
-    /// Handles voice state updates from Discord. You shouldn't need to call this method directly.
-    ///
-    /// Override to provide additional customization around this event.
-    ///
-    /// Calls the `didReceiveVoiceStateUpdate` delegate method.
-    ///
-    /// - parameter with: The data from the event
-    ///
-    open func handleVoiceStateUpdate(with data: [String: Any]) {
-        DefaultDiscordLogger.Logger.log("Handling voice state update", type: logType)
-
-        guard let guildId = Snowflake(data["guild_id"] as? String) else { return }
-
-        let state = DiscordVoiceState(voiceStateObject: data, guildId: guildId)
-
-        DefaultDiscordLogger.Logger.verbose("Voice state: \(state)", type: logType)
-
-        if state.channelId == 0 {
-            guilds[guildId]?.voiceStates[state.userId] = nil
-        } else {
-            guilds[guildId]?.voiceStates[state.userId] = state
-        }
-
-        if state.userId == user?.id {
-            if state.channelId == 0 {
-                voiceManager.protected { self.voiceManager.voiceStates[state.guildId] = nil }
-            } else {
-                voiceManager.protected { self.voiceManager.voiceStates[state.guildId] = state }
-
-                startVoiceConnection(state.guildId)
-            }
-        }
-
-        delegate?.client(self, didReceiveVoiceStateUpdate: state)
     }
 }

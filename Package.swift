@@ -1,4 +1,4 @@
-// swift-tools-version:4.0
+// swift-tools-version:4.1
 
 // The MIT License (MIT)
 // Copyright (c) 2016 Erik Little
@@ -20,18 +20,10 @@
 import PackageDescription
 
 var deps: [Package.Dependency] = [
-    .package(url: "https://github.com/nuclearace/copus", .upToNextMinor(from: "2.0.0")),
-    .package(url: "https://github.com/nuclearace/Sodium", .upToNextMinor(from: "2.0.0")),
-    .package(url: "https://github.com/vapor/engine", .upToNextMinor(from: "2.2.0")),
+    .package(url: "https://github.com/daltoniam/Starscream", .upToNextMinor(from: "3.0.0"))
 ]
 
-var targetDeps: [Target.Dependency] = ["DiscordOpus", "WebSockets"]
-
-#if !os(Linux)
-deps += [.package(url: "https://github.com/daltoniam/Starscream", .upToNextMinor(from: "3.0.0")),]
-targetDeps += ["Starscream"]
-#endif
-
+var targetDeps: [Target.Dependency] = ["WebSockets"]
 
 let package = Package(
     name: "SwiftDiscord",
@@ -40,8 +32,7 @@ let package = Package(
     ],
     dependencies: deps,
     targets: [
-        .target(name: "SwiftDiscord", dependencies: targetDeps),
-        .target(name: "DiscordOpus"),
+        .target(name: "SwiftDiscord", dependencies: ["Starscream"]),
         .testTarget(name: "SwiftDiscordTests", dependencies: ["SwiftDiscord"]),
     ]
 )

@@ -16,11 +16,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 import Foundation
-#if !os(Linux)
 import Starscream
-#else
-import WebSockets
-#endif
 import Dispatch
 
 #if os(macOS)

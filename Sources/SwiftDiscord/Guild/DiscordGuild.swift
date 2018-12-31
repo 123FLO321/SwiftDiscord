@@ -71,10 +71,6 @@ public final class DiscordGuild : DiscordClientHolder, CustomStringConvertible {
     /// A dictionary of this guild's roles. The key is the snowflake id of the role.
     public internal(set) var roles: [RoleID: DiscordRole]
 
-    /// A dictionary of this guild's current voice states. The key is the snowflake id of the user for this voice
-    /// state.
-    public internal(set) var voiceStates: [UserID: DiscordVoiceState]
-
     /// The default message notification setting.
     public private(set) var defaultMessageNotifications: Int
 
@@ -125,8 +121,7 @@ public final class DiscordGuild : DiscordClientHolder, CustomStringConvertible {
         roles = DiscordRole.rolesFromArray(guildObject.get("roles", or: JSONArray()))
         splash = guildObject.get("splash", or: "")
         verificationLevel = guildObject.get("verification_level", or: -1)
-        voiceStates = DiscordVoiceState.voiceStatesFromArray(guildObject.get("voice_states", or: JSONArray()),
-                                                             guildId: id)
+        
         unavailable = guildObject.get("unavailable", or: false)
         joinedAt = DiscordDateFormatter.format(guildObject.get("joined_at", or: "")) ?? Date()
         self.client = client
